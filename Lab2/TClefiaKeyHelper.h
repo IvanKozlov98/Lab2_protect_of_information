@@ -13,6 +13,9 @@ namespace NClefia {
     class TClefiaKeyHelper {
 
     public:
+
+        static void SetWhiteningKeys(const std::vector<TBlock32Bits>& whiteningKeys);
+
         static const std::vector<TBlock32Bits>& GetWhiteningKeys();
         static const std::vector<TBlock32Bits>& GetRoundKeys();
 
@@ -28,8 +31,8 @@ namespace NClefia {
         // inline function
         static TSubBlocks<TBlock32Bits> DoubleSwap(const TSubBlocks<TBlock32Bits>& blocks);
     private:
-        static std::vector<TBlock32Bits> roundKeys;
-        static std::vector<TBlock32Bits> whiteningKeys;
+        static std::vector<TBlock32Bits> RoundKeys;
+        static std::vector<TBlock32Bits> WhiteningKeys;
     };
 }
 

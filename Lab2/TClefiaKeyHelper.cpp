@@ -9,8 +9,8 @@
 
 namespace NClefia {
 
-    std::vector<TBlock32Bits> TClefiaKeyHelper::roundKeys;
-    std::vector<TBlock32Bits> TClefiaKeyHelper::whiteningKeys;
+    std::vector<TBlock32Bits> TClefiaKeyHelper::RoundKeys;
+    std::vector<TBlock32Bits> TClefiaKeyHelper::WhiteningKeys;
 
     const std::vector<TBlock32Bits> TClefiaKeyHelper::Keys = {0xffeeddcc, 0xbbaa9988, 0x77665544, 0x33221100};
 
@@ -96,8 +96,8 @@ namespace NClefia {
             roundKeys[4 * idx + 3] = tempBlocks[3];
         }*/
 
-        whiteningKeys = Keys;
-        roundKeys = {
+        WhiteningKeys = Keys;
+        RoundKeys = {
             0xf3e6cef9, 0x8df75e38, 0x41c06256, 0x640ac51b,
             0x6a27e20a, 0x5a791b90, 0xe8c528dc, 0x00336ea3,
             0x59cd17c4, 0x28565583, 0x312a37cc, 0xc08abd77,
@@ -110,18 +110,22 @@ namespace NClefia {
     }
 
 
+    void TClefiaKeyHelper::SetWhiteningKeys(const std::vector<TBlock32Bits>& whiteningKeys) {
+        WhiteningKeys = whiteningKeys;
+    }
+
     const std::vector<TBlock32Bits>& TClefiaKeyHelper::GetWhiteningKeys() {
-        if (whiteningKeys.empty()) {
+        if (WhiteningKeys.empty()) {
             InitRoundAndWhiteningKeys();
         }
-        return whiteningKeys;
+        return WhiteningKeys;
     }
 
     const std::vector<TBlock32Bits>& TClefiaKeyHelper::GetRoundKeys() {
-        if (roundKeys.empty()) {
+        if (RoundKeys.empty()) {
             InitRoundAndWhiteningKeys();
         }
-        return roundKeys;
+        return RoundKeys;
     }
 }
 

@@ -25,6 +25,10 @@ namespace NClefia {
         ProcessImpl(inFileName, outFileName, EOperatingMode::DECODE);
     }
 
+    void TChiferClefia::Hash(const std::string& inFileName, const std::string& outFileName) {
+        ProcessImpl(inFileName, outFileName, EOperatingMode::HASH);
+    }
+
     static inline void ApplyWhiteningKeys(
         const TBlock32Bits whiteningKey1,
         const TBlock32Bits whiteningKey2,
@@ -59,46 +63,73 @@ namespace NClefia {
         ApplyWhiteningKeys(whiteningKeys[0], whiteningKeys[1], resultBlocks);
     }
 
-    TSubBlocks<TBlock32Bits> TChiferClefia::OperateImpl(const TSubBlocks<TBlock32Bits>& blocks, const EOperatingMode operatingMode) {
+    TSubBlocks<TBlock32Bits> TChiferClefia::OperateImpl(
+        const TSubBlocks<TBlock32Bits>& blocks,
+        const EOperatingMode operatingMode,
+        const std::unique_ptr<TSubBlocks<TBlock32Bits>> newWhiteningKeys) {
         TSubBlocks<TBlock32Bits> result;
         switch (operatingMode) {
-        case EOperatingMode::CODE: {
+        case EOperatingMode::CODE : {
             TChiferClefia::Encrypt(blocks, &result);
             break;
         }
-        case EOperatingMode::DECODE: {
+        case EOperatingMode::DECODE : {
             TChiferClefia::Decrypt(blocks, &result);
             break;
         }
+        case EOperatingMode::HASH : {
+            if (newWhiteningKeys) {
+                TClefiaKeyHelper::SetWhiteningKeys(
+                    { 
+                        (*newWhiteningKeys)[0],
+                        (*newWhiteningKeys)[1],
+                        (*newWhiteningKeys)[2],
+                        (*newWhiteningKeys)[3]
+                    });
+                TChiferClefia::Encrypt(blocks, &result);
+            }
+        }
         }
         return result;
+    }
+
+
+    static TSubBlocks<TBlock32Bits> ReadNextBlock(std::ifstream& fin) {
+        TSubBlocks<TBlock32Bits> blocks = { 0, 0, 0, 0 };
+        for (int idx = 0; !fin.eof() && idx < branchCount; ++idx) {
+            fin.read((char*)& blocks[idx], sizeof(TBlock32Bits));
+        }
+        return blocks;
     }
 
     void TChiferClefia::ProcessImpl(const std::string& inFileName, const std::string& outFileName, const EOperatingMode operatingMode)
     {
         std::ifstream inFile(inFileName, std::ifstream::binary);
         std::ofstream outFile(outFileName, std::ofstream::binary);
-
+        std::unique_ptr<TSubBlocks<TBlock32Bits>> newWhiteningKeysPtr;
+        TSubBlocks<TBlock32Bits> processedBlocks;
+        bool isFirstIteration = true;
         if (inFile) {  // code all
-            TSubBlocks<TBlock32Bits> blocks = { 0, 0, 0, 0 };
-            uint8_t ind = 0;
             do {
-                inFile.read((char*)& blocks[ind], sizeof(TBlock32Bits));
-                ++ind;
-                if (ind % branchCount == 0) {
-                    ind = 0;
-                    OutBlock(outFile, OperateImpl(blocks, operatingMode));
+                const auto blocks = ReadNextBlock(inFile);
+                if (isFirstIteration) {
+                    processedBlocks = OperateImpl(blocks, operatingMode);
+                    isFirstIteration = false;
+                }
+                else {
+                    processedBlocks = OperateImpl(
+                        blocks,
+                        operatingMode,
+                        std::make_unique<TSubBlocks<TBlock32Bits>>(processedBlocks)
+                    );
+                }
+                if (operatingMode == EOperatingMode::CODE || operatingMode == EOperatingMode::DECODE) {
+                    OutBlock(outFile, processedBlocks);
                 }
             } while (!inFile.eof());
-            // if number of bytes is not a multiple of 4
-            if (ind % branchCount) {
-                // append zeros to blocks
-                for (auto i = ind; i < 4; ++i) {
-                    blocks[i] = 0;
-                }
-                OutBlock(outFile, OperateImpl(blocks, operatingMode), ind);
+            if (operatingMode == EOperatingMode::HASH) {
+                OutBlock(outFile, processedBlocks);
             }
-
         }
         else {
             std::cout << "error: only " << inFile.gcount() << " could be read";

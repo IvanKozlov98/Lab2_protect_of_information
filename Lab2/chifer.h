@@ -15,6 +15,7 @@
 #include "TSubBlocks.h"
 #include "TClefiaKeyHelper.h"
 #include "types.h"
+#include <memory>
 
 namespace NClefia {
 
@@ -22,16 +23,18 @@ namespace NClefia {
 
     private:
       enum class EOperatingMode {
-          CODE, DECODE
+          CODE, DECODE, HASH
       };
-
-      //TODO make this private  
-    public:
+ 
+    private:
         static void Encrypt(const TSubBlocks<TBlock32Bits>& blocks, TSubBlocks <TBlock32Bits>* resultBlocks);
 
         static void Decrypt(const TSubBlocks<TBlock32Bits>& blocks, TSubBlocks <TBlock32Bits>* resultBlocks);
 
-        static TSubBlocks<TBlock32Bits> OperateImpl(const TSubBlocks<TBlock32Bits>& blocks, const EOperatingMode operatingMode);
+        static TSubBlocks<TBlock32Bits> OperateImpl(
+            const TSubBlocks<TBlock32Bits>& blocks,
+            const EOperatingMode operatingMode,
+            std::unique_ptr<TSubBlocks<TBlock32Bits>> newWhiteningKeys = nullptr);
 
         static void ProcessImpl(const std::string& inFileName, const std::string& outFileName, const EOperatingMode operatingMode);
 
@@ -39,6 +42,8 @@ namespace NClefia {
         static void Code(const std::string& inFileName, const std::string& outFileName);
 
         static void Decode(const std::string& inFileName, const std::string& outFileName);
+
+        static void Hash(const std::string& inFileName, const std::string& outFileName);
     };
 
 }
